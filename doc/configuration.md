@@ -236,9 +236,14 @@ cache:
 ## backendCache
 Specify what storage to use for backend cache. This cache stores the responses
 from the backends. It should have more cache hits than the response cache since
-the response format and the maxDataPoints paramter are not part of the cache
+the response format and the maxDataPoints parameter are not part of the cache
 key, but results from cache still need to be postprocessed (e.g. serialized to
-desired response format).
+desired response format).  
+
+When using `memcache`, you can prevent [dogpile effect](https://en.wikipedia.org/wiki/Cache_stampede) with `dogpileProtection*` opt-in settings (disabled by default).  
+If enabled, multiple `carbonapi` threads or servers won't try to fetch the data from backends if the same request is already being computed somewhere else.  
+For instance, it's usefull when you have a bunch of servers, long running queries and multiple users accessing the same dashboards/queries.    
+Those settings have no effect outside of `memcache` cache backend.
 
 Supports same options as the response cache.
 ### Example
@@ -250,6 +255,9 @@ backendCache:
    memcachedServers:
        - "127.0.0.1:1234"
        - "127.0.0.2:1235"
+  dogpileProtection: true # default is false
+  dogpileProtectionLockTimeoutSec: 60 # this is the default value. If the lock cannot be obtained within timeout, the cache is not used
+  dogpileProtectionRetryDelayMs: 100 # this is the default value. When someone else is computing the response, we try to get a cached response every dogpileProtectionRetryDelayMs
 ```
 ***
 ## cpus
